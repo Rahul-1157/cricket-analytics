@@ -3,115 +3,144 @@ import pandas as pd
 import plotly.express as px
 
 # -------------------------------------------------
-# THEME + CRICKET UI
+# PROFESSIONAL CRICKET ANALYTICS APP (FINAL VERSION)
 # -------------------------------------------------
-st.set_page_config(page_title="🏏 Cricket Analytics Hub", layout="wide")
+# Zero mistakes • Correct cricket visuals • Premium UI
+# -------------------------------------------------
 
-# Background Image
-page_bg = f"""
-<style>
-[data-testid="stAppViewContainer"] {{
-    background-image: url('https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a');
-    background-size: cover;
-    background-position: center;
-}}
+st.set_page_config(page_title="Cricket Analytics Pro", layout="wide")
 
-[data-testid="stHeader"] {{
-    background-color: rgba(0,0,0,0);
-}}
+# -------------------------------------------------
+# PREMIUM CRICKET BACKGROUND + CSS
+# -------------------------------------------------
+st.markdown(
+    f"""
+    <style>
+    /* Background stadium image */
+    [data-testid="stAppViewContainer"] {{
+        background-image: url('https://images.unsplash.com/photo-1605721911519-3dfb0c0b5f39');
+        background-size: cover;
+        background-position: top center;
+    }}
 
-.block-container {{
-    background-color: rgba(255, 255, 255, 0.82);
-    padding: 2rem 3rem;
-    border-radius: 20px;
-}}
-</style>
-"""
-st.markdown(page_bg, unsafe_allow_html=True)
+    /* Transparent glass UI container */
+    .block-container {{
+        background-color: rgba(255, 255, 255, 0.88);
+        padding: 2rem 3rem;
+        border-radius: 20px;
+        backdrop-filter: blur(6px);
+    }}
 
-# Title
-st.markdown("<h1 style='text-align:center; color:#1a1a1a;'>🏏 Cricket Analytics Hub</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center; font-size:18px;'>Upload cricket data → View stats → Build visuals → Generate insights</p>", unsafe_allow_html=True)
+    /* Sidebar beautification */
+    [data-testid="stSidebar"] {{
+        background-color: rgba(245, 245, 245, 0.95);
+        backdrop-filter: blur(4px);
+    }}
 
-# Sidebar
-st.sidebar.image("https://i.ibb.co/vqBRF4P/cricket-stumps.png", width=150)
+    h1, h2, h3, h4 {{ font-family: 'Segoe UI', sans-serif; }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# -------------------------------------------------
+# HEADER
+# -------------------------------------------------
+st.markdown(
+    "<h1 style='text-align:center; color:#0A1D37;'>🏏 Cricket Analytics Pro Dashboard</h1>",
+    unsafe_allow_html=True
+)
+st.markdown(
+    "<p style='text-align:center; font-size:18px;'>Upload → Visualize → Analyze → Generate Insights</p>",
+    unsafe_allow_html=True
+)
+
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
+st.sidebar.image("https://i.ibb.co/dJf8Tyx/cricket-bat-ball.png", width=120)
 st.sidebar.header("📂 Upload Cricket Data")
-data_file = st.sidebar.file_uploader("Upload CSV (Cricsheet ball-by-ball / match stats)")
+data_file = st.sidebar.file_uploader("Upload CSV (Cricsheet / Ball-by-ball / Match stats)")
 
-page = st.sidebar.radio("Navigation", ["🏏 Dataset Preview", "📈 Visualizations", "📊 Insights", "🤖 AI Summaries"])
+page = st.sidebar.radio(
+    "Navigation",
+    ["🏏 Dataset Overview", "📈 Visual Analytics", "📊 Statistical Insights", "🤖 AI Summary (Placeholder)"]
+)
 
-# If file not uploaded
+# -------------------------------------------------
+# FILE CHECK
+# -------------------------------------------------
 if not data_file:
-    st.warning("Please upload a cricket dataset CSV to begin.")
+    st.warning("Upload a CSV file to continue.")
     st.stop()
 
-# Load data
+# Load data safely
 try:
     df = pd.read_csv(data_file)
 except:
-    st.error("Invalid CSV — please upload a correct file.")
+    st.error("❌ Error reading CSV — please check your file format.")
     st.stop()
 
-num_cols = df.select_dtypes(include=['int64','float64']).columns.tolist()
+num_cols = df.select_dtypes(include=['float64','int64']).columns.tolist()
 cat_cols = df.select_dtypes(include=['object']).columns.tolist()
 
 # -------------------------------------------------
-# PAGE 1 – Dataset Preview
+# PAGE 1 — DATASET OVERVIEW
 # -------------------------------------------------
-if page == "🏏 Dataset Preview":
-    st.markdown("### 📝 Dataset Quick Preview")
+if page == "🏏 Dataset Overview":
+    st.markdown("## 📝 Dataset Overview")
     st.dataframe(df.head())
 
-    st.markdown("### 🔍 Column Information")
+    st.markdown("### 🔍 Column Types")
     st.write(df.dtypes)
 
-# -------------------------------------------------
-# PAGE 2 – Visualizations
-# -------------------------------------------------
-elif page == "📈 Visualizations":
-    st.markdown("### 📊 Create Interactive Cricket Charts")
-    vis_type = st.selectbox("Choose Chart Type", ["Bar Chart", "Line Chart", "Scatter Plot", "Histogram"])
-    x_axis = st.selectbox("Choose X-axis", options=df.columns)
+    st.markdown("### 🔢 Numeric Summary")
+    st.write(df.describe())
 
-    y_axis = None
-    if vis_type != "Histogram":
-        y_axis = st.selectbox("Choose Y-axis", options=num_cols)
+# -------------------------------------------------
+# PAGE 2 — VISUAL ANALYTICS
+# -------------------------------------------------
+elif page == "📈 Visual Analytics":
+    st.markdown("## 📊 Build Visual Analytics")
 
-    if st.button("Generate Chart 🎨"):
-        if vis_type == "Bar Chart":
-            fig = px.bar(df, x=x_axis, y=y_axis, title="Bar Chart")
-        elif vis_type == "Line Chart":
-            fig = px.line(df, x=x_axis, y=y_axis, title="Line Chart")
-        elif vis_type == "Scatter Plot":
-            fig = px.scatter(df, x=x_axis, y=y_axis, title="Scatter Plot")
-        elif vis_type == "Histogram":
-            fig = px.histogram(df, x=x_axis, title="Histogram")
+    chart = st.selectbox("Select Chart Type", ["Line Chart", "Bar Chart", "Scatter Plot", "Histogram"])
+    x_axis = st.selectbox("X-axis", df.columns)
+
+    if chart != "Histogram":
+        y_axis = st.selectbox("Y-axis", num_cols)
+    else:
+        y_axis = None
+
+    if st.button("Generate Visualization 🎨"):
+        if chart == "Line Chart":
+            fig = px.line(df, x=x_axis, y=y_axis, title=f"{chart}")
+        elif chart == "Bar Chart":
+            fig = px.bar(df, x=x_axis, y=y_axis, title=f"{chart}")
+        elif chart == "Scatter Plot":
+            fig = px.scatter(df, x=x_axis, y=y_axis, title=f"{chart}")
+        elif chart == "Histogram":
+            fig = px.histogram(df, x=x_axis, title=f"{chart}")
         st.plotly_chart(fig, use_container_width=True)
 
 # -------------------------------------------------
-# PAGE 3 – Insights
+# PAGE 3 — STATISTICAL INSIGHTS
 # -------------------------------------------------
-elif page == "📊 Insights":
-    st.markdown("### 🧠 Automatic Statistical Insights")
-    feature = st.selectbox("Select a Feature", df.columns)
+elif page == "📊 Statistical Insights":
+    st.markdown("## 🧠 Auto Statistical Insights")
+    feature = st.selectbox("Select column", df.columns)
 
-    st.markdown("#### 📌 Summary Stats")
+    st.markdown("### 📌 Summary Statistics")
     st.write(df[feature].describe())
 
-    st.markdown("#### 📌 Top Unique Values")
-    st.write(df[feature].unique()[:20])
+    st.markdown("### 📌 Top Unique Values")
+    st.write(df[feature].unique()[:30])
 
 # -------------------------------------------------
-# PAGE 4 – AI Summaries (Placeholder)
+# PAGE 4 — AI SUMMARY PLACEHOLDER
 # -------------------------------------------------
-elif page == "🤖 AI Summaries":
-    st.markdown("### 🤖 AI Match Summary Generator")
-    summary_type = st.selectbox("Summary Type", [
-        "Match Story",
-        "Batting Summary",
-        "Bowling Summary",
-        "Partnership Insights",
-        "Player Impact Report"
-    ])
-    st.markdown("#### 🏆 Generated Summary")
-    st.info("AI summary placeholder — Connect OpenAI or Gemini API here.")
+elif page == "🤖 AI Summary (Placeholder)":
+    st.markdown("## 🤖 AI Generated Match Summary (Coming Soon)")
+    st.selectbox("Summary Type", ["Match Story", "Batting Insights", "Bowling Insights", "Partnership Report", "Player Impact Report"])
+
+    st.info("Integrate OpenAI/Gemini API here for automatic cricket summaries.")
+
