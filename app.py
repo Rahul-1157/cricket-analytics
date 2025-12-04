@@ -1,138 +1,98 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import plotly.express as px
 
-st.set_page_config(page_title="Cricket Analytics", layout="wide")
+# ---------------------------
+# CONFIG
+# ---------------------------
+st.set_page_config(page_title="Cricket Analytics Hub", layout="wide")
+
+st.title("🏏 Cricket Analytics Hub – Streamlit (Upgraded Version)")
+st.write("Upload cricket datasets → explore visuals → auto insights → generate summaries.")
 
 # ---------------------------
 # SIDEBAR
 # ---------------------------
-st.sidebar.title("🏏 Cricket Analytics")
-menu = st.sidebar.radio("Navigation", ["Home", "Match Analysis", "Player Insights", "Team Comparison"])
+st.sidebar.header("📂 Upload Cricket Data")
+data_file = st.sidebar.file_uploader("Upload CSV (Cricsheet ball-by-ball, match stats, player stats)")
+
+page = st.sidebar.radio("Navigation", ["Dataset Preview", "Visualizations", "Insights", "AI Summaries"])
+
+if not data_file:
+    st.info("Upload a CSV file to begin.")
+    st.stop()
+
+# Load dataset
+try:
+    df = pd.read_csv(data_file)
+except:
+    st.error("Invalid CSV format. Please upload a valid file.")
+    st.stop()
+
+num_cols = df.select_dtypes(include=['int64','float64']).columns.tolist()
+cat_cols = df.select_dtypes(include=['object']).columns.tolist()
 
 # ---------------------------
-# HOME
+# PAGE 1 – Dataset Preview
 # ---------------------------
-if menu == "Home":
-    st.title("🏏 Cricket Analytics Dashboard")
-    st.write("""
-    Welcome to the Cricket Analytics site — built with Streamlit.  
-    Upload cricket data (Cricsheet, ESPNcricinfo, CSV files) and generate insights instantly.
-    """)
-    st.image("https://images.pexels.com/photos/269948/pexels-photo-269948.jpeg")
+if page == "Dataset Preview":
+    st.subheader("📊 Dataset Preview")
+    st.dataframe(df.head())
 
-# ---------------------------
-# MATCH ANALYSIS
-# ---------------------------
-elif menu == "Match Analysis":
-    st.title("📊 Match Analysis")
-
-    uploaded = st.file_uploader("Upload match data (CSV / Cricsheet JSON)", type=["csv", "json"])
-
-    if uploaded:
-        if uploaded.name.endswith(".csv"):
-            df = pd.read_csv(uploaded)
-        else:
-            df = pd.read_json(uploaded)
-
-        st.subheader("Dataset Preview")
-        st.dataframe(df.head())
-
-        # Basic Stats
-        st.subheader("Basic Match Stats")
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Total Balls", len(df))
-        col2.metric("Total Runs", df["runs"].sum() if "runs" in df else "-")
-        col3.metric("Wickets", df["wicket"].sum() if "wicket" in df else "-")
-
-        # Runs per over
-        st.subheader("Runs per Over")
-        if "over" in df and "runs" in df:
-            runs_over = df.groupby("over")["runs"].sum()
-
-            fig, ax = plt.subplots()
-            ax.plot(runs_over.index, runs_over.values)
-            ax.set_xlabel("Over")
-            ax.set_ylabel("Runs")
-            ax.set_title("Runs per Over")
-            st.pyplot(fig)
-
-        # Wickets timeline
-        st.subheader("Wickets Timeline")
-        if "ball" in df and "wicket" in df:
-            fig2, ax2 = plt.subplots()
-            ax2.scatter(df["ball"], df["wicket"])
-            ax2.set_xlabel("Ball Number")
-            ax2.set_ylabel("Wicket Event")
-            ax2.set_title("Wicket Timeline")
-            st.pyplot(fig2)
+    st.subheader("🔍 Column Information")
+    st.write(df.dtypes)
 
 # ---------------------------
-# PLAYER INSIGHTS
+# PAGE 2 – Visualizations
 # ---------------------------
-elif menu == "Player Insights":
-    st.title("👤 Player Performance Insights")
+elif page == "Visualizations":
+    st.subheader("📈 Build Visualizations")
 
-    uploaded = st.file_uploader("Upload player stats (CSV)", type=["csv"])
+    vis_type = st.selectbox("Chart Type", ["Bar Chart", "Line Chart", "Scatter Plot", "Histogram"])
+    x_axis = st.selectbox("X-axis", options=df.columns)
 
-    if uploaded:
-        df = pd.read_csv(uploaded)
-        st.dataframe(df.head())
+    if vis_type == "Histogram":
+        y_axis = None
+    else:
+        y_axis = st.selectbox("Y-axis", options=num_cols)
 
-        players = df["player"].unique()
-        chosen = st.selectbox("Select Player", players)
+    if st.button("Generate Chart"):
+        if vis_type == "Bar Chart":
+            fig = px.bar(df, x=x_axis, y=y_axis, title="Bar Chart")
+        elif vis_type == "Line Chart":
+            fig = px.line(df, x=x_axis, y=y_axis, title="Line Chart")
+        elif vis_type == "Scatter Plot":
+            fig = px.scatter(df, x=x_axis, y=y_axis, title="Scatter Plot")
+        elif vis_type == "Histogram":
+            fig = px.histogram(df, x=x_axis, title="Histogram")
 
-        pdf = df[df["player"] == chosen]
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.metric("Total Runs", pdf["runs"].sum())
-
-        with col2:
-            st.metric("Strike Rate", round((pdf["runs"].sum() / len(pdf)) * 100, 2))
-
-        # Line chart: runs progression
-        st.subheader("Runs Progression")
-        fig, ax = plt.subplots()
-        ax.plot(pdf["ball"], pdf["runs"].cumsum())
-        ax.set_xlabel("Ball")
-        ax.set_ylabel("Cumulative Runs")
-        st.pyplot(fig)
+        st.plotly_chart(fig, use_container_width=True)
 
 # ---------------------------
-# TEAM COMPARISON
+# PAGE 3 – Insights
 # ---------------------------
-elif menu == "Team Comparison":
-    st.title("⚔️ Team Comparison")
+elif page == "Insights":
+    st.subheader("🧠 Auto Statistical Insights")
+    feature = st.selectbox("Select a Feature", df.columns)
 
-    uploaded = st.file_uploader("Upload team-wise stats (CSV)", type=["csv"])
+    st.write("### Summary Stats")
+    st.write(df[feature].describe())
 
-    if uploaded:
-        df = pd.read_csv(uploaded)
-        st.dataframe(df.head())
+    st.write("### Unique Values")
+    st.write(df[feature].unique()[:25])
 
-        teams = df["team"].unique()
+# ---------------------------
+# PAGE 4 – AI Summaries (Placeholder)
+# ---------------------------
+elif page == "AI Summaries":
+    st.subheader("🤖 AI Match Summary Generator")
+    summary_type = st.selectbox("Summary Type", [
+        "Match Story",
+        "Batting Summary",
+        "Bowling Summary",
+        "Partnership Insights",
+        "Player Impact Report"
+    ])
 
-        t1 = st.selectbox("Team 1", teams)
-        t2 = st.selectbox("Team 2", teams)
-
-        df1 = df[df["team"] == t1]
-        df2 = df[df["team"] == t2]
-
-        col1, col2 = st.columns(2)
-        col1.metric(f"{t1} Total Runs", df1["runs"].sum())
-        col2.metric(f"{t2} Total Runs", df2["runs"].sum())
-
-        # Compare run rate
-        st.subheader("Run Rate Comparison")
-        fig, ax = plt.subplots()
-        ax.plot(df1["over"], df1["runs"], label=t1)
-        ax.plot(df2["over"], df2["runs"], label=t2)
-        ax.set_xlabel("Over")
-        ax.set_ylabel("Runs")
-        ax.legend()
-        st.pyplot(fig)
-
+    st.write("### Generated Summary")
+    st.write("(AI summary placeholder — connect OpenAI or Gemini API here)")
